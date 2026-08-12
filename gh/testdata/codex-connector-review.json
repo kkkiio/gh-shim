@@ -1,0 +1,81 @@
+{
+  "source": "https://github.com/kkkiio/agconf/pull/2",
+  "nativeOutput": "author: kkkiio\nassociation: owner\nedited: false\nstatus: none\n--\n@codex review\n--\n",
+  "reviewThreads": [
+    {
+      "id": "PRRT_kwDOTnSuG86U_k9A",
+      "path": "agconf.mbt",
+      "line": 571,
+      "originalLine": 571,
+      "startLine": 570,
+      "diffSide": "RIGHT",
+      "startDiffSide": "RIGHT",
+      "subjectType": "LINE",
+      "isResolved": true,
+      "isOutdated": false,
+      "resolvedBy": { "login": "kkkiio" },
+      "comments": [
+        {
+          "id": "PRRC_kwDOTnSuG87bWqPp",
+          "author": { "login": "chatgpt-codex-connector" },
+          "authorAssociation": "NONE",
+          "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Normalize the URL used for operation output**\n\nWhen a valid blob URL includes a query or fragment, such as `.../review.md?plain=1` or `.../review.md#L10`, this strips the suffix only for parsing while retaining the original URL as `display_source`. The later `.has_suffix(\".md\")` check therefore fails and appends the relative filename, producing malformed dry-run and completion output like `.../review.md?plain=1/review.md`; pass the normalized URL through for display as well.\n\nUseful? React with 👍 / 👎.",
+          "diffHunk": "@@ -543,23 +559,50 @@ async fn copy_item(",
+          "createdAt": "2026-07-30T05:08:26Z",
+          "updatedAt": "2026-07-30T05:08:27Z",
+          "url": "https://github.com/kkkiio/agconf/pull/2#discussion_r3680150505"
+        }
+      ]
+    },
+    {
+      "id": "PRRT_kwDOTnSuG86U_k9D",
+      "path": "docs/fetch.md",
+      "line": null,
+      "originalLine": 191,
+      "startLine": null,
+      "diffSide": "RIGHT",
+      "startDiffSide": null,
+      "subjectType": "LINE",
+      "isResolved": true,
+      "isOutdated": true,
+      "resolvedBy": { "login": "kkkiio" },
+      "comments": [
+        {
+          "id": "PRRC_kwDOTnSuG87bWqPs",
+          "author": { "login": "chatgpt-codex-connector" },
+          "authorAssociation": "NONE",
+          "body": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Replace mutable GitHub fixtures in the CI cram suite**\n\nThe integration job in `.github/workflows/ci.yml` runs this cram file for every PR, but this test clones the mutable default branch of an external repository and asserts its exact inventory on the following lines. Any upstream file addition, rename, outage, or rate limit will fail unrelated changes; use a controlled fixture or an immutable tag instead (the other newly added `main`-based GitHub cases have the same dependency).\n\nUseful? React with 👍 / 👎.",
+          "diffHunk": "@@ -118,3 +118,104 @@ fixtures/skill-only/skills/web/SKILL.md → .pi/prompts/web.md",
+          "createdAt": "2026-07-30T05:08:26Z",
+          "updatedAt": "2026-07-30T05:08:27Z",
+          "url": "https://github.com/kkkiio/agconf/pull/2#discussion_r3680150508"
+        }
+      ]
+    },
+    {
+      "id": "PRRT_kwDOTnSuG86U_zRO",
+      "path": "docs/fetch.md",
+      "line": 166,
+      "originalLine": 166,
+      "startLine": null,
+      "diffSide": "RIGHT",
+      "startDiffSide": null,
+      "subjectType": "LINE",
+      "isResolved": true,
+      "isOutdated": false,
+      "resolvedBy": { "login": "kkkiio" },
+      "comments": [
+        {
+          "id": "PRRC_kwDOTnSuG87bW-je",
+          "author": { "login": "chatgpt-codex-connector" },
+          "authorAssociation": "NONE",
+          "body": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Correct the expected nested-skill prompt name**\n\nWhen the integration suite reaches this case, `discover_file` assigns `skill_name` from the containing directory, so this fixture produces `.pi/prompts/grill-with-docs.md`, not `.pi/prompts/grilling.md`; frontmatter is stripped for content but never used for naming. The checked-in cram expectation therefore fails deterministically and should match the `grill-with-docs` directory name.\n\nAGENTS.md reference: [AGENTS.md:L137-L143](https://github.com/kkkiio/agconf/blob/849a83c48f2f5b05d48ca35cca3244ad037c4967/AGENTS.md#L137-L143)\n\nUseful? React with 👍 / 👎.",
+          "diffHunk": "@@ -104,17 +104,113 @@ warning: codex prompts require -g / --global; skipping prompts for codex",
+          "createdAt": "2026-07-30T05:29:37Z",
+          "updatedAt": "2026-07-30T05:29:37Z",
+          "url": "https://github.com/kkkiio/agconf/pull/2#discussion_r3680233694"
+        }
+      ]
+    }
+  ]
+}

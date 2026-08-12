@@ -1,0 +1,14 @@
+{
+  "id": "thread",
+  "path": "README.md",
+  "line": null,
+  "originalLine": null,
+  "startLine": null,
+  "diffSide": null,
+  "startDiffSide": null,
+  "subjectType": "FILE",
+  "isResolved": false,
+  "isOutdated": false,
+  "resolvedBy": null,
+  "comments": []
+}

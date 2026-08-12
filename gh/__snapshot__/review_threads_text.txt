@@ -1,0 +1,25 @@
+review threads: 2 total, 1 unresolved, 1 resolved; 1 outdated
+
+author: reviewer
+association: member
+
+INLINE REVIEW THREADS
+
+[UNRESOLVED] src/current.mbt:12
+thread: unresolved
+url: https://github.com/acme/widgets/pull/1#discussion_r1
+
+reviewer • member • 2026-08-01T00:00:00Z
+Please fix this.
+
+  reply: author • owner • 2026-08-02T00:00:00Z
+  Fixed now.
+  Added a regression test.
+
+[RESOLVED, OUTDATED] src/old.mbt:8 (original)
+thread: resolved
+resolved-by: author
+url: https://github.com/acme/widgets/pull/1#discussion_r1
+
+reviewer • member • 2026-08-01T00:00:00Z
+Please fix this.

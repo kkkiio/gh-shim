@@ -1,0 +1,49 @@
+review threads: 3 total, 0 unresolved, 3 resolved; 1 outdated
+
+author: kkkiio
+association: owner
+edited: false
+status: none
+--
+@codex review
+--
+
+INLINE REVIEW THREADS
+
+[RESOLVED] agconf.mbt:571
+thread: PRRT_kwDOTnSuG86U_k9A
+resolved-by: kkkiio
+url: https://github.com/kkkiio/agconf/pull/2#discussion_r3680150505
+
+chatgpt-codex-connector • none • 2026-07-30T05:08:26Z
+**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Normalize the URL used for operation output**
+
+When a valid blob URL includes a query or fragment, such as `.../review.md?plain=1` or `.../review.md#L10`, this strips the suffix only for parsing while retaining the original URL as `display_source`. The later `.has_suffix(".md")` check therefore fails and appends the relative filename, producing malformed dry-run and completion output like `.../review.md?plain=1/review.md`; pass the normalized URL through for display as well.
+
+Useful? React with 👍 / 👎.
+
+[RESOLVED] docs/fetch.md:166
+thread: PRRT_kwDOTnSuG86U_zRO
+resolved-by: kkkiio
+url: https://github.com/kkkiio/agconf/pull/2#discussion_r3680233694
+
+chatgpt-codex-connector • none • 2026-07-30T05:29:37Z
+**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Correct the expected nested-skill prompt name**
+
+When the integration suite reaches this case, `discover_file` assigns `skill_name` from the containing directory, so this fixture produces `.pi/prompts/grill-with-docs.md`, not `.pi/prompts/grilling.md`; frontmatter is stripped for content but never used for naming. The checked-in cram expectation therefore fails deterministically and should match the `grill-with-docs` directory name.
+
+AGENTS.md reference: [AGENTS.md:L137-L143](https://github.com/kkkiio/agconf/blob/849a83c48f2f5b05d48ca35cca3244ad037c4967/AGENTS.md#L137-L143)
+
+Useful? React with 👍 / 👎.
+
+[RESOLVED, OUTDATED] docs/fetch.md:191 (original)
+thread: PRRT_kwDOTnSuG86U_k9D
+resolved-by: kkkiio
+url: https://github.com/kkkiio/agconf/pull/2#discussion_r3680150508
+
+chatgpt-codex-connector • none • 2026-07-30T05:08:26Z
+**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Replace mutable GitHub fixtures in the CI cram suite**
+
+The integration job in `.github/workflows/ci.yml` runs this cram file for every PR, but this test clones the mutable default branch of an external repository and asserts its exact inventory on the following lines. Any upstream file addition, rename, outage, or rate limit will fail unrelated changes; use a controlled fixture or an immutable tag instead (the other newly added `main`-based GitHub cases have the same dependency).
+
+Useful? React with 👍 / 👎.

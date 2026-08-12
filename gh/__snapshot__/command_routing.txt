@@ -1,0 +1,7 @@
+pr view 2 --comments => text comments
+pr view 2 --json reviews,comments => json comments: reviews,comments
+pr view 2 --json=reviewThreads => json comments: reviewThreads
+pr view 2 --json title => passthrough
+issue list => passthrough
+rewritten => pr view 2 -R kkkiio/agconf --json reviews,comments,url
+reference => github.example.com/acme/widgets#42

@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up MoonBit
+        shell: bash
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "${HOME}/.moon/bin" >> "${GITHUB_PATH}"
+
+      - name: Update dependencies
+        shell: bash
+        run: |
+          moon version --all
+          moon update
+
+      - name: Check formatting
+        run: moon fmt --check
+
+      - name: Check compilation
+        run: moon check
+
+      - name: Run tests
+        run: moon test
+
+      - name: Build native executable
+        run: moon build cmd/gh-shim --target native
