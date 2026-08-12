@@ -1,23 +1,23 @@
 # gh-shim
 
-![原生 gh 与 gh-shim 的 PR comments 输出差异](docs/assets/gh-shim-comments-diff.jpg)
+![Difference between native gh and gh-shim PR comments output](docs/assets/gh-shim-comments-diff.jpg)
 
-`gh-shim` 是 GitHub CLI 的透明增强层：补全 `gh pr view --comments` 遗漏的 inline review comments，其他命令原样转发给真实 `gh`。
+`gh-shim` is a transparent enhancement layer for GitHub CLI. It adds the inline review comments missing from `gh pr view --comments` while forwarding all other commands unchanged to the real `gh` executable.
 
 ## Why gh-shim
 
-原生 `gh pr view --comments` 会显示 Conversation 评论和 review summary，却不会完整显示代码行上的 review comments/threads。命令仍会成功，因此 Coding Agent 容易误判为“没有待处理反馈”。
+Native `gh pr view --comments` displays conversation comments and review summaries, but does not include all review comments and threads attached to lines of code. The command still succeeds, which can lead coding agents to incorrectly conclude that there is no feedback left to address.
 
-相关 GitHub CLI 问题：[cli/cli#359](https://github.com/cli/cli/issues/359)、[#3883](https://github.com/cli/cli/issues/3883)、[#5788](https://github.com/cli/cli/issues/5788)、[#11477](https://github.com/cli/cli/issues/11477)。
+Related GitHub CLI issues: [cli/cli#359](https://github.com/cli/cli/issues/359), [#3883](https://github.com/cli/cli/issues/3883), [#5788](https://github.com/cli/cli/issues/5788), and [#11477](https://github.com/cli/cli/issues/11477).
 
 ## Goals
 
-- 保留现有 `gh` 命令入口、认证和普通命令行为。
-- `gh pr view --comments` 输出 review comments。
+- Preserve the existing `gh` command entry point, authentication, and behavior for regular commands.
+- Include review comments in `gh pr view --comments` output.
 
 ## Installation
 
-需要已安装并登录的 GitHub CLI；使用 `--jq` 时还需要安装 `jq`。
+GitHub CLI must be installed and authenticated. Using `--jq` also requires `jq`.
 
 ```bash
 # homebrew
@@ -29,7 +29,7 @@ moon install KKKIIO/gh-shim/cmd/gh-shim
 ~/.moon/bin/gh-shim init
 ```
 
-重新打开终端，使 shim 生效。
+Restart your terminal to activate the shim.
 
 ## Usage
 
@@ -37,14 +37,14 @@ moon install KKKIIO/gh-shim/cmd/gh-shim
 gh pr view 42 --comments --repo owner/repository
 ```
 
-JSON 请求 `comments` 时会增加同级字段 `reviewThreads`：
+When a JSON query requests `comments`, a sibling `reviewThreads` field is added:
 
 ```bash
 gh pr view 42 --repo owner/repository --json comments \
   --jq '{comments: (.comments | length), reviewThreads: (.reviewThreads | length)}'
 ```
 
-增强 JSON 支持原始输出和 `--jq`，不支持 `--template`。检查安装状态：
+Enhanced JSON output supports both raw output and `--jq`, but not `--template`. To check the installation status:
 
 ```bash
 gh-shim doctor
@@ -52,8 +52,8 @@ gh-shim doctor
 
 ## Project lifecycle
 
-如果官方 GitHub CLI 完整支持 review threads，`gh-shim` 将移除对应增强；若不再有其他信息缺口，项目会归档。
+If the official GitHub CLI gains complete review thread support, `gh-shim` will remove the corresponding enhancement. If no other information gaps remain, the project will be archived.
 
 ## Related work
 
-[`agynio/gh-pr-review`](https://github.com/agynio/gh-pr-review) 提供查看、回复和解决 review threads 的专用工作流；`gh-shim` 则增强已有的 `gh pr view --comments` 调用。
+[`agynio/gh-pr-review`](https://github.com/agynio/gh-pr-review) provides a dedicated workflow for viewing, replying to, and resolving review threads. In contrast, `gh-shim` enhances existing `gh pr view --comments` calls.
