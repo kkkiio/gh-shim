@@ -31,7 +31,7 @@
 │   ├── fake-gh                       # 进程集成测试使用的确定性 real gh 替身
 │   └── ubuntu-integration.sh         # native binary、PATH、分页与 shell 黑盒测试
 └── docs/
-    ├── assets/gh-shim-logo.png       # README logo
+    ├── assets/gh-shim-comments-diff.jpg # README 输出对比图
     └── adr/
         ├── 0001-enhance-gh-pr-view-comments.md
         └── 0002-install-and-activate-the-shim.md

@@ -1,9 +1,5 @@
 # gh-shim
 
-<p align="center">
-  <img src="docs/assets/gh-shim-logo.png" width="224" alt="gh-shim：从命令行入口揭示 review threads 的适配层">
-</p>
-
 `gh-shim` 是 GitHub CLI 的透明增强层：它保留日常 `gh` 命令的行为，并让 `gh pr view --comments` 同时呈现 Conversation、review summary 和完整的 inline review threads，避免开发者与 Coding Agent 漏掉代码行上的反馈。
 
 ![原生 gh 与 gh-shim 的 PR comments 输出差异](docs/assets/gh-shim-comments-diff.jpg)
