@@ -40,3 +40,11 @@ jobs:
 
       - name: Build native executable
         run: moon build cmd/gh-shim --target native
+
+      - name: Install integration test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes fish jq
+
+      - name: Run Ubuntu process integration tests
+        run: tests/ubuntu-integration.sh

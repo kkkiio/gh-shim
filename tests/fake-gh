@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+printf '%q ' "$@" >>"${GH_FAKE_LOG:?}"
+printf '\n' >>"${GH_FAKE_LOG}"
+
+if [[ "${1:-}" == "--version" ]]; then
+  printf 'gh version fake\n'
+  exit 0
+fi
+
+if [[ "${1:-}" == "passthrough" ]]; then
+  IFS= read -r input
+  printf 'fake stdout: %s\n' "${input}"
+  printf 'fake stderr\n' >&2
+  exit 23
+fi
+
+if [[ "${1:-}" == "pr" && "${2:-}" == "view" ]]; then
+  if [[ " $* " == *" --comments "* && " $* " != *" --json "* ]]; then
+    printf 'author: reviewer\nassociation: member\n--\nConversation comment.\n'
+  elif [[ " $* " == *" comments"* ]]; then
+    printf '{"comments":[{"body":"Conversation comment."}],"url":"https://github.com/acme/widgets/pull/42"}\n'
+  else
+    printf '{"url":"https://github.com/acme/widgets/pull/42"}\n'
+  fi
+  exit 0
+fi
+
+if [[ "${1:-}" == "api" && "${2:-}" == "graphql" ]]; then
+  if [[ "$*" == *'query($id:ID!'* ]]; then
+    if [[ "${GH_FAKE_FAIL_COMMENT_PAGE:-}" == "1" ]]; then
+      printf 'comment page failed\n' >&2
+      exit 42
+    fi
+    printf '%s\n' '{"data":{"node":{"comments":{"nodes":[{"id":"comment-2","author":{"login":"author"},"authorAssociation":"OWNER","body":"Fixed.","diffHunk":"@@ -1 +1 @@","createdAt":"2026-08-02T00:00:00Z","updatedAt":"2026-08-02T00:00:00Z","url":"https://github.com/acme/widgets/pull/42#discussion_r2"}],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}'
+  elif [[ "$*" == *"after=thread-page-2"* ]]; then
+    printf '%s\n' '{"data":{"repository":{"pullRequest":{"reviewThreads":{"nodes":[{"id":"thread-2","path":"README.md","line":null,"originalLine":null,"startLine":null,"diffSide":null,"startDiffSide":null,"subjectType":"FILE","isResolved":true,"isOutdated":false,"resolvedBy":{"login":"author"},"comments":{"nodes":[{"id":"comment-3","author":{"login":"reviewer"},"authorAssociation":"MEMBER","body":"File note.","diffHunk":"","createdAt":"2026-08-03T00:00:00Z","updatedAt":"2026-08-03T00:00:00Z","url":"https://github.com/acme/widgets/pull/42#discussion_r3"}],"pageInfo":{"hasNextPage":false,"endCursor":null}}}],"pageInfo":{"hasNextPage":false,"endCursor":null}}}}}}'
+  else
+    printf '%s\n' '{"data":{"repository":{"pullRequest":{"reviewThreads":{"nodes":[{"id":"thread-1","path":"src/main.mbt","line":12,"originalLine":12,"startLine":null,"diffSide":"RIGHT","startDiffSide":null,"subjectType":"LINE","isResolved":false,"isOutdated":false,"resolvedBy":null,"comments":{"nodes":[{"id":"comment-1","author":{"login":"reviewer"},"authorAssociation":"MEMBER","body":"Please fix this.","diffHunk":"@@ -1 +1 @@","createdAt":"2026-08-01T00:00:00Z","updatedAt":"2026-08-01T00:00:00Z","url":"https://github.com/acme/widgets/pull/42#discussion_r1"}],"pageInfo":{"hasNextPage":true,"endCursor":"comment-page-2"}}}],"pageInfo":{"hasNextPage":true,"endCursor":"thread-page-2"}}}}}}'
+  fi
+  exit 0
+fi
+
+printf 'unexpected fake gh invocation: %s\n' "$*" >&2
+exit 64

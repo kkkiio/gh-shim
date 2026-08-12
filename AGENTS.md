@@ -27,6 +27,9 @@
 ├── cmd/gh-shim/
 │   ├── main.mbt                      # async CLI 入口和退出码传播
 │   └── moon.pkg                      # 可安装 native main package
+├── tests/
+│   ├── fake-gh                       # 进程集成测试使用的确定性 real gh 替身
+│   └── ubuntu-integration.sh         # native binary、PATH、分页与 shell 黑盒测试
 └── docs/
     ├── assets/gh-shim-logo.png       # README logo
     └── adr/
@@ -66,7 +69,7 @@
 
 ### Test Policy
 
-当修改 `gh/gh_shim.mbt`、`cmd/gh-shim/` 或公开输出契约时，只写黑盒 `*_test.mbt`，通过公开 package API 驱动行为并使用 `@test.Test::snapshot` 保存输出；不要创建 `_wbtest.mbt`。先用 `moon test --update` 更新快照并审查，再用普通 `moon test` 确认快照稳定。仅修改 ADR 或文字且行为不变时可跳过快照更新。
+当修改 `gh/gh_shim.mbt`、`cmd/gh-shim/` 或公开输出契约时，只写黑盒测试；公开 package API 行为使用 `*_test.mbt` 和 `@test.Test::snapshot`，native 进程、环境变量、PATH 与 shell 行为使用 `tests/ubuntu-integration.sh`。不要创建 `_wbtest.mbt`。修改快照行为时，先用 `moon test --update` 更新并审查，再用普通 `moon test` 确认快照稳定。仅修改 ADR 或文字且行为不变时可跳过快照更新。
 
 ### Git Policy
 
@@ -105,6 +108,7 @@ moon info
 moon check
 moon test
 moon build
+tests/ubuntu-integration.sh
 ```
 
 修改 GitHub 查询、格式化或 shim 激活行为时，再使用已登录的 GitHub CLI 对一个含 unresolved threads、一个含 resolved/outdated threads 和一个零 threads 的 PR 做真实验证：

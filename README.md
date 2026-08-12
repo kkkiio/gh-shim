@@ -61,6 +61,8 @@ gh pr view 42 --repo owner/repository --json comments \
   --jq '{comments: (.comments | length), reviewThreads: (.reviewThreads | length)}'
 ```
 
+包含 `comments` 或 `reviewThreads` 的增强 JSON 输出支持原始 JSON 和 `--jq`，不接受 `--template`；其他原生字段投影仍由 GitHub CLI 处理。
+
 检查 PATH 接管状态与真实 GitHub CLI 路径：
 
 ```bash

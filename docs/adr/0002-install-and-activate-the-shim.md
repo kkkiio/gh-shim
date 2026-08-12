@@ -49,6 +49,8 @@ gh-shim init
 3. 向对应的 shell 启动文件加入一条受管理的初始化语句。
 4. 重复执行时不写入重复配置。
 
+Zsh 写入 `.zshrc`。Bash 同时写入 `.bashrc` 和当前生效的登录启动文件：依次选择已有的 `.bash_profile`、`.bash_login`、`.profile`，都不存在时创建 `.bash_profile`。Fish 写入 `${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish`，并在首次配置时创建父目录。
+
 自动写入的 managed 配置使用当前 `gh-shim` 的稳定绝对入口调用初始化命令。因此，即使 Moon 的 `~/.moon/bin` 原本不在新 shell 的 PATH 中，用户第一次用绝对路径执行 `gh-shim init` 后也能持续激活。Homebrew 场景记录稳定的 `$(brew --prefix)/bin/gh-shim` 链接，不记录 Cellar 版本目录。
 
 Zsh 和 Bash 使用：

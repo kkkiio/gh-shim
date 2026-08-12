@@ -397,13 +397,18 @@ fn shim_directory() -> String raise {
 ///|
 async fn resolve_real_gh() -> (String, String) {
   let path = @env.get_env_var("PATH").unwrap_or("")
-  let shim = shim_directory().trim_end(chars="/").to_owned()
-  let shim_real = if @fs.exists(shim) {
-    @fs.realpath(shim) catch {
-      _ => shim
-    }
-  } else {
-    shim
+  let shim : String? = match @env.get_env_var("GH_SHIM_DIRECTORY") {
+    Some(directory) if directory != "" =>
+      Some(directory.trim_end(chars="/").to_owned())
+    _ =>
+      Some(shim_directory().trim_end(chars="/").to_owned()) catch {
+        _ => None
+      }
+  }
+  let shim_real = match shim {
+    Some(directory) if @fs.exists(directory) =>
+      Some(@fs.realpath(directory) catch { _ => directory })
+    directory => directory
   }
   let remaining : Array[String] = []
   let mut real_gh : String? = None
@@ -421,7 +426,7 @@ async fn resolve_real_gh() -> (String, String) {
     } else {
       comparable
     }
-    if comparable_real != shim_real {
+    if Some(comparable_real) != shim_real {
       remaining.push(entry)
       if real_gh is None {
         let candidate = if comparable == "" { "gh" } else { comparable + "/gh" }
@@ -435,7 +440,11 @@ async fn resolve_real_gh() -> (String, String) {
     Some(executable) => (executable, remaining.join(":"))
     None =>
       raise Failure::Failure(
-        "real gh executable not found after removing \{shim} from PATH",
+        match shim {
+          Some(directory) =>
+            "real gh executable not found after removing \{directory} from PATH"
+          None => "real gh executable not found in PATH"
+        },
       )
   }
 }
@@ -766,31 +775,6 @@ async fn run_json_comments(
   arguments : Array[String],
   requested_fields : Array[String],
 ) -> Int {
-  let native_fields = requested_fields.filter(field => field != "reviewThreads")
-  if !native_fields.contains("url") {
-    native_fields.push("url")
-  }
-  let native_arguments = rewrite_pr_view_arguments(arguments, native_fields)
-  let (native_status, native_stdout, native_stderr) = @process.collect_output(
-    real_gh,
-    native_arguments,
-    extra_env={ "PATH": clean_path },
-  )
-  if native_status != 0 {
-    @stdio.stderr.write(native_stderr)
-    return native_status
-  }
-  guard @json.parse(native_stdout.text()) is Object(native_object) &&
-    native_object.get("url") is Some(String(url)) else {
-    raise Failure::Failure("real gh returned no pull request URL")
-  }
-  let reference = parse_pull_request_url(url)
-  let threads = fetch_review_threads(real_gh, clean_path, reference)
-  if !requested_fields.contains("url") {
-    native_object.remove("url")
-  }
-  native_object["reviewThreads"] = @json.to_json(threads)
-  let enhanced = Json::object(native_object).stringify()
   let mut jq_expression : String? = None
   let mut template : String? = None
   let mut index = 0
@@ -816,9 +800,34 @@ async fn run_json_comments(
   }
   if template is Some(_) {
     raise Failure::Failure(
-      "--template is not supported for enhanced reviewThreads output",
+      "--template cannot format enhanced comments or reviewThreads output; use --jq",
     )
   }
+  let native_fields = requested_fields.filter(field => field != "reviewThreads")
+  if !native_fields.contains("url") {
+    native_fields.push("url")
+  }
+  let native_arguments = rewrite_pr_view_arguments(arguments, native_fields)
+  let (native_status, native_stdout, native_stderr) = @process.collect_output(
+    real_gh,
+    native_arguments,
+    extra_env={ "PATH": clean_path },
+  )
+  if native_status != 0 {
+    @stdio.stderr.write(native_stderr)
+    return native_status
+  }
+  guard @json.parse(native_stdout.text()) is Object(native_object) &&
+    native_object.get("url") is Some(String(url)) else {
+    raise Failure::Failure("real gh returned no pull request URL")
+  }
+  let reference = parse_pull_request_url(url)
+  let threads = fetch_review_threads(real_gh, clean_path, reference)
+  if !requested_fields.contains("url") {
+    native_object.remove("url")
+  }
+  native_object["reviewThreads"] = @json.to_json(threads)
+  let enhanced = Json::object(native_object).stringify()
   match jq_expression {
     None => @stdio.stdout.write(enhanced + "\n")
     Some(expression) =>
@@ -881,9 +890,10 @@ async fn run_init(arguments : Array[String], executable : String) -> Int {
     }
   }
   let quoted_engine = engine.replace_all(old="'", new="'\\''")
+  let quoted_shim = shim.replace_all(old="'", new="'\\''")
   @fs.write_file(
     launcher,
-    "#!/bin/sh\nGH_SHIM_INVOKED_AS_GH=1 exec '\{quoted_engine}' \"$@\"\n",
+    "#!/bin/sh\nGH_SHIM_INVOKED_AS_GH=1 GH_SHIM_DIRECTORY='\{quoted_shim}' exec '\{quoted_engine}' \"$@\"\n",
     create_mode=CreateOrTruncate,
     permission=0o755,
   )
@@ -936,12 +946,25 @@ async fn run_init(arguments : Array[String], executable : String) -> Int {
   if home == "" {
     raise Failure::Failure("HOME is required")
   }
-  let config = match shell {
-    "zsh" => home + "/.zshrc"
-    "bash" => home + "/.bashrc"
+  let configs = match shell {
+    "zsh" => [home + "/.zshrc"]
+    "bash" => {
+      let login_config = if @fs.exists(home + "/.bash_profile") {
+        home + "/.bash_profile"
+      } else if @fs.exists(home + "/.bash_login") {
+        home + "/.bash_login"
+      } else if @fs.exists(home + "/.profile") {
+        home + "/.profile"
+      } else {
+        home + "/.bash_profile"
+      }
+      [home + "/.bashrc", login_config]
+    }
     _ =>
-      @env.get_env_var("XDG_CONFIG_HOME").unwrap_or(home + "/.config") +
-      "/fish/config.fish"
+      [
+        @env.get_env_var("XDG_CONFIG_HOME").unwrap_or(home + "/.config") +
+        "/fish/config.fish",
+      ]
   }
   let line = if shell == "fish" {
     let fish_engine = engine
@@ -951,26 +974,35 @@ async fn run_init(arguments : Array[String], executable : String) -> Int {
   } else {
     "eval \"$('\{quoted_engine}' init - \{shell})\""
   }
-  let existing = if @fs.exists(config) {
-    @fs.read_file(config).text()
-  } else {
-    ""
-  }
-  if !existing.split("\n").any(item => item == line) {
-    let separator = if existing == "" || existing.has_suffix("\n") {
-      ""
-    } else {
-      "\n"
+  for config in configs {
+    let config_directory = match config.rev_find("/") {
+      Some(index) => config[:index].to_owned()
+      None => "."
     }
-    @fs.write_file(
-      config,
-      separator + line + "\n",
-      create_mode=OpenOrCreate,
-      append=true,
-    )
+    if !@fs.exists(config_directory) {
+      @fs.mkdir(config_directory, recursive=true)
+    }
+    let existing = if @fs.exists(config) {
+      @fs.read_file(config).text()
+    } else {
+      ""
+    }
+    if !existing.split("\n").any(item => item == line) {
+      let separator = if existing == "" || existing.has_suffix("\n") {
+        ""
+      } else {
+        "\n"
+      }
+      @fs.write_file(
+        config,
+        separator + line + "\n",
+        create_mode=OpenOrCreate,
+        append=true,
+      )
+    }
+    println("updated \{config}")
   }
   println("installed gh shim: \{launcher}")
-  println("updated \{config}")
   println("restart the shell or run: exec \"$SHELL\"")
   0
 }
