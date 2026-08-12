@@ -168,7 +168,9 @@ gh pr view <pr> --json title,state
 
 仍然只返回 `title` 和 `state`。
 
-`--jq` 和 `--template` 在增强后的 JSON 对象上执行，因此可以访问 `reviewThreads`。显式选择 `.comments` 仍然只得到 `IssueComment[]`；inline comments 不会伪装成普通 Conversation comments。
+`--jq` 在增强后的 JSON 对象上执行，因此可以访问 `reviewThreads`。显式选择 `.comments` 仍然只得到 `IssueComment[]`；inline comments 不会伪装成普通 Conversation comments。
+
+Comment-aware projection 不接受 `--template`。完整兼容 GitHub CLI 的 Go Template 语法及扩展函数需要另一套运行时；提供语义不完整的模板子集会让已有命令产生不可预测的结果。检测到该组合时，在请求 PR 或 review thread 数据前以非零状态失败。未请求 `comments` 或 `reviewThreads` 的原生字段投影继续由 real gh 处理，因此其 `--template` 行为不变。
 
 请求 `comments` 时隐式增加字段是有意的兼容性取舍。严格字段投影的重要性低于 `gh-shim` 的核心承诺：请求 PR 评论时不能静默漏掉 review feedback。
 
@@ -227,6 +229,7 @@ gh pr view <pr> --json title,state
 
 - `--comments` 文本输出不再与原生 `gh` 完全相同。
 - 请求 JSON `comments` 会得到一个未显式列出的同级字段，严格字段投影有所放宽。
+- Comment-aware JSON projection 不能使用 `--template`。
 - 获取全部 review threads 会增加网络请求、延迟和分页成本。
 - GitHub API 权限、限流或暂时故障可能使原本能够部分成功的调用显式失败。
 

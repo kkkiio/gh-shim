@@ -27,6 +27,13 @@ test "routes comment-aware PR views and preserves native projections" (
     ["reviews", "comments", "url"],
   )
   t.writeln("rewritten => " + rewritten.join(" "))
+  let rewritten_attached_template = @gh_shim.rewrite_pr_view_arguments(
+    ["pr", "view", "2", "--json=comments", "-t{{len .comments}}"],
+    ["comments", "url"],
+  )
+  t.writeln(
+    "rewritten attached template => " + rewritten_attached_template.join(" "),
+  )
   let reference = @gh_shim.parse_pull_request_url(
     "https://github.example.com/acme/widgets/pull/42",
   )

@@ -346,7 +346,8 @@ pub fn rewrite_pr_view_arguments(
       index = if index + 1 < arguments.length() { index + 2 } else { index + 1 }
     } else if argument.has_prefix("--json=") ||
       argument.has_prefix("--jq=") ||
-      argument.has_prefix("--template=") {
+      argument.has_prefix("--template=") ||
+      (argument.has_prefix("-t") && argument.length() > 2) {
       index = index + 1
     } else {
       rewritten.push(argument)
@@ -397,13 +398,18 @@ fn shim_directory() -> String raise {
 ///|
 async fn resolve_real_gh() -> (String, String) {
   let path = @env.get_env_var("PATH").unwrap_or("")
-  let shim = shim_directory().trim_end(chars="/").to_owned()
-  let shim_real = if @fs.exists(shim) {
-    @fs.realpath(shim) catch {
-      _ => shim
-    }
-  } else {
-    shim
+  let shim : String? = match @env.get_env_var("GH_SHIM_DIRECTORY") {
+    Some(directory) if directory != "" =>
+      Some(directory.trim_end(chars="/").to_owned())
+    _ =>
+      Some(shim_directory().trim_end(chars="/").to_owned()) catch {
+        _ => None
+      }
+  }
+  let shim_real = match shim {
+    Some(directory) if @fs.exists(directory) =>
+      Some(@fs.realpath(directory) catch { _ => directory })
+    directory => directory
   }
   let remaining : Array[String] = []
   let mut real_gh : String? = None
@@ -421,7 +427,7 @@ async fn resolve_real_gh() -> (String, String) {
     } else {
       comparable
     }
-    if comparable_real != shim_real {
+    if Some(comparable_real) != shim_real {
       remaining.push(entry)
       if real_gh is None {
         let candidate = if comparable == "" { "gh" } else { comparable + "/gh" }
@@ -435,7 +441,11 @@ async fn resolve_real_gh() -> (String, String) {
     Some(executable) => (executable, remaining.join(":"))
     None =>
       raise Failure::Failure(
-        "real gh executable not found after removing \{shim} from PATH",
+        match shim {
+          Some(directory) =>
+            "real gh executable not found after removing \{directory} from PATH"
+          None => "real gh executable not found in PATH"
+        },
       )
   }
 }
@@ -766,6 +776,37 @@ async fn run_json_comments(
   arguments : Array[String],
   requested_fields : Array[String],
 ) -> Int {
+  let mut jq_expression : String? = None
+  let mut template : String? = None
+  let mut index = 0
+  while index < arguments.length() {
+    let argument = arguments[index]
+    if (argument == "--jq" || argument == "-q") &&
+      index + 1 < arguments.length() {
+      jq_expression = Some(arguments[index + 1])
+      index = index + 2
+    } else if argument.has_prefix("--jq=") {
+      jq_expression = Some(argument[5:].to_owned())
+      index = index + 1
+    } else if (argument == "--template" || argument == "-t") &&
+      index + 1 < arguments.length() {
+      template = Some(arguments[index + 1])
+      index = index + 2
+    } else if argument.has_prefix("--template=") {
+      template = Some(argument[11:].to_owned())
+      index = index + 1
+    } else if argument.has_prefix("-t") && argument.length() > 2 {
+      template = Some(argument[2:].to_owned())
+      index = index + 1
+    } else {
+      index = index + 1
+    }
+  }
+  if template is Some(_) {
+    raise Failure::Failure(
+      "--template cannot format enhanced comments or reviewThreads output; use --jq",
+    )
+  }
   let native_fields = requested_fields.filter(field => field != "reviewThreads")
   if !native_fields.contains("url") {
     native_fields.push("url")
@@ -791,34 +832,6 @@ async fn run_json_comments(
   }
   native_object["reviewThreads"] = @json.to_json(threads)
   let enhanced = Json::object(native_object).stringify()
-  let mut jq_expression : String? = None
-  let mut template : String? = None
-  let mut index = 0
-  while index < arguments.length() {
-    let argument = arguments[index]
-    if (argument == "--jq" || argument == "-q") &&
-      index + 1 < arguments.length() {
-      jq_expression = Some(arguments[index + 1])
-      index = index + 2
-    } else if argument.has_prefix("--jq=") {
-      jq_expression = Some(argument[5:].to_owned())
-      index = index + 1
-    } else if (argument == "--template" || argument == "-t") &&
-      index + 1 < arguments.length() {
-      template = Some(arguments[index + 1])
-      index = index + 2
-    } else if argument.has_prefix("--template=") {
-      template = Some(argument[11:].to_owned())
-      index = index + 1
-    } else {
-      index = index + 1
-    }
-  }
-  if template is Some(_) {
-    raise Failure::Failure(
-      "--template is not supported for enhanced reviewThreads output",
-    )
-  }
   match jq_expression {
     None => @stdio.stdout.write(enhanced + "\n")
     Some(expression) =>
@@ -881,9 +894,10 @@ async fn run_init(arguments : Array[String], executable : String) -> Int {
     }
   }
   let quoted_engine = engine.replace_all(old="'", new="'\\''")
+  let quoted_shim = shim.replace_all(old="'", new="'\\''")
   @fs.write_file(
     launcher,
-    "#!/bin/sh\nGH_SHIM_INVOKED_AS_GH=1 exec '\{quoted_engine}' \"$@\"\n",
+    "#!/bin/sh\nGH_SHIM_INVOKED_AS_GH=1 GH_SHIM_DIRECTORY='\{quoted_shim}' exec '\{quoted_engine}' \"$@\"\n",
     create_mode=CreateOrTruncate,
     permission=0o755,
   )
@@ -936,12 +950,25 @@ async fn run_init(arguments : Array[String], executable : String) -> Int {
   if home == "" {
     raise Failure::Failure("HOME is required")
   }
-  let config = match shell {
-    "zsh" => home + "/.zshrc"
-    "bash" => home + "/.bashrc"
+  let configs = match shell {
+    "zsh" => [home + "/.zshrc"]
+    "bash" => {
+      let login_config = if @fs.exists(home + "/.bash_profile") {
+        home + "/.bash_profile"
+      } else if @fs.exists(home + "/.bash_login") {
+        home + "/.bash_login"
+      } else if @fs.exists(home + "/.profile") {
+        home + "/.profile"
+      } else {
+        home + "/.bash_profile"
+      }
+      [home + "/.bashrc", login_config]
+    }
     _ =>
-      @env.get_env_var("XDG_CONFIG_HOME").unwrap_or(home + "/.config") +
-      "/fish/config.fish"
+      [
+        @env.get_env_var("XDG_CONFIG_HOME").unwrap_or(home + "/.config") +
+        "/fish/config.fish",
+      ]
   }
   let line = if shell == "fish" {
     let fish_engine = engine
@@ -951,26 +978,35 @@ async fn run_init(arguments : Array[String], executable : String) -> Int {
   } else {
     "eval \"$('\{quoted_engine}' init - \{shell})\""
   }
-  let existing = if @fs.exists(config) {
-    @fs.read_file(config).text()
-  } else {
-    ""
-  }
-  if !existing.split("\n").any(item => item == line) {
-    let separator = if existing == "" || existing.has_suffix("\n") {
-      ""
-    } else {
-      "\n"
+  for config in configs {
+    let config_directory = match config.rev_find("/") {
+      Some(index) => config[:index].to_owned()
+      None => "."
     }
-    @fs.write_file(
-      config,
-      separator + line + "\n",
-      create_mode=OpenOrCreate,
-      append=true,
-    )
+    if !@fs.exists(config_directory) {
+      @fs.mkdir(config_directory, recursive=true)
+    }
+    let existing = if @fs.exists(config) {
+      @fs.read_file(config).text()
+    } else {
+      ""
+    }
+    if !existing.split("\n").any(item => item == line) {
+      let separator = if existing == "" || existing.has_suffix("\n") {
+        ""
+      } else {
+        "\n"
+      }
+      @fs.write_file(
+        config,
+        separator + line + "\n",
+        create_mode=OpenOrCreate,
+        append=true,
+      )
+    }
+    println("updated \{config}")
   }
   println("installed gh shim: \{launcher}")
-  println("updated \{config}")
   println("restart the shell or run: exec \"$SHELL\"")
   0
 }
