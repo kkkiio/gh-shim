@@ -22,14 +22,11 @@
 ```bash
 # homebrew
 brew install kkkiio/tap/gh-shim
+gh-shim init
+
 # or moon
 moon install KKKIIO/gh-shim/cmd/gh-shim
-```
-
-安装后激活 shim：
-
-```bash
-gh-shim init
+~/.moon/bin/gh-shim init
 ```
 
 重新打开终端，使 shim 生效。
