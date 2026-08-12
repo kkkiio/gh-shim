@@ -17,6 +17,8 @@
 
 ## Installation
 
+需要已安装并登录的 GitHub CLI；使用 `--jq` 时还需要安装 `jq`。
+
 ```bash
 # homebrew
 brew install kkkiio/tap/gh-shim
@@ -29,6 +31,8 @@ moon install KKKIIO/gh-shim/cmd/gh-shim
 ```bash
 gh-shim init
 ```
+
+重新打开终端，使 shim 生效。
 
 ## Usage
 
