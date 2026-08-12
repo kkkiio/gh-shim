@@ -346,7 +346,8 @@ pub fn rewrite_pr_view_arguments(
       index = if index + 1 < arguments.length() { index + 2 } else { index + 1 }
     } else if argument.has_prefix("--json=") ||
       argument.has_prefix("--jq=") ||
-      argument.has_prefix("--template=") {
+      argument.has_prefix("--template=") ||
+      (argument.has_prefix("-t") && argument.length() > 2) {
       index = index + 1
     } else {
       rewritten.push(argument)
@@ -793,6 +794,9 @@ async fn run_json_comments(
       index = index + 2
     } else if argument.has_prefix("--template=") {
       template = Some(argument[11:].to_owned())
+      index = index + 1
+    } else if argument.has_prefix("-t") && argument.length() > 2 {
+      template = Some(argument[2:].to_owned())
       index = index + 1
     } else {
       index = index + 1

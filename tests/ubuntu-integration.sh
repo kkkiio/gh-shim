@@ -51,6 +51,20 @@ grep -Fq -- '--template cannot format enhanced comments or reviewThreads output'
   "${test_root}/template.err"
 [[ ! -s "${GH_FAKE_LOG}" ]]
 
+: >"${GH_FAKE_LOG}"
+set +e
+env HOME="${json_home}" XDG_DATA_HOME="${json_home}/data" \
+  PATH="${fake_bin}:/usr/bin:/bin" "${binary}" pr view 42 \
+  --repo acme/widgets --json reviewThreads -t'{{len .reviewThreads}}' \
+  >"${test_root}/attached-template.out" \
+  2>"${test_root}/attached-template.err"
+attached_template_status=$?
+set -e
+[[ ${attached_template_status} -eq 1 ]]
+grep -Fq -- '--template cannot format enhanced comments or reviewThreads output' \
+  "${test_root}/attached-template.err"
+[[ ! -s "${GH_FAKE_LOG}" ]]
+
 set +e
 GH_FAKE_FAIL_COMMENT_PAGE=1 env HOME="${json_home}" \
   XDG_DATA_HOME="${json_home}/data" PATH="${fake_bin}:/usr/bin:/bin" \

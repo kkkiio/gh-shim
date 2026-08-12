@@ -4,4 +4,5 @@ pr view 2 --json=reviewThreads => json comments: reviewThreads
 pr view 2 --json title => passthrough
 issue list => passthrough
 rewritten => pr view 2 -R kkkiio/agconf --json reviews,comments,url
+rewritten attached template => pr view 2 --json comments,url
 reference => github.example.com/acme/widgets#42
