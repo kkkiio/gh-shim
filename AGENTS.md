@@ -128,4 +128,4 @@ moon install --bin <temporary-bin-directory> ./cmd/gh-shim
 
 ### Release
 
-准备发布时，先把 `moon.mod` 的 `version` 更新为目标版本并完成 Testing & Automated Checks。随后创建匹配的 `v<version>` tag；`.github/workflows/release.yml` 会校验 tag 与 module 版本一致，构建并测试 macOS arm64 release binary，再发布带 SHA-256 校验和的 GitHub Release。
+准备发布时，先把 `moon.mod` 的 `version` 更新为目标版本并完成 Testing & Automated Checks。随后创建匹配的 `v<version>` tag；`.github/workflows/release.yml` 会校验 tag 与 module 版本一致，构建并测试 macOS arm64 release binary，再发布带 SHA-256 校验和的 GitHub Release。GitHub Release 成功后，在已登录 Mooncakes 的本地环境从同一 tag 运行 `moon publish`，直到 CI 接管 Mooncakes 发布。
