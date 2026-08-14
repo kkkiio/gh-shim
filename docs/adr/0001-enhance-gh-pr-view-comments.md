@@ -61,7 +61,7 @@ gh pr view <pr> --comments
 --- gh pr view 2 --comments
 +++ gh-shim pr view 2 --comments
 @@
-+review threads: 3 total, 2 unresolved, 1 resolved; 1 outdated
++3 review threads · 2 open · 1 resolved; 1 outdated
 +
  author: kkkiio
  association: owner
@@ -71,35 +71,30 @@ gh pr view <pr> --comments
  @codex review
  --
 +
-+INLINE REVIEW THREADS
++Review threads
 +
-+[UNRESOLVED] agconf.mbt:571
-+thread: PRRT_kwDOTnSuG...
-+url: https://github.com/...#discussion_r3680150505
++agconf.mbt:571
 +
-+chatgpt-codex-connector • none • 2026-07-30T05:08:26Z
++chatgpt-codex-connector
 +Normalize the URL used for operation output...
 +
-+  reply: kkkiio • owner • 2026-07-30T06:12:03Z
++  kkkiio replied
 +  Fixed in abf46ef.
 +
-+[UNRESOLVED, OUTDATED] docs/fetch.md:191 (original)
-+thread: PRRT_kwDOTnSuG...
-+url: https://github.com/...#discussion_r3680150508
++docs/fetch.md:191 · outdated · original
 +
-+chatgpt-codex-connector • none • 2026-07-30T05:08:26Z
++chatgpt-codex-connector
 +Replace mutable GitHub fixtures in the CI cram suite...
 +
-+[RESOLVED] docs/fetch.md:166
-+thread: PRRT_kwDOTnSuG...
-+resolved-by: kkkiio
-+url: https://github.com/...#discussion_r3680233694
++✓ docs/fetch.md:166 · resolved by kkkiio
 +
-+chatgpt-codex-connector • none • 2026-07-30T05:29:37Z
++chatgpt-codex-connector
 +Correct the expected nested-skill prompt name...
 ```
 
 所有 thread 都会显示，包括 resolved 和 outdated thread。`isResolved` 与 `isOutdated` 是相互独立的状态；摘要中的 outdated 数量可能与 resolved 或 unresolved 重叠。
+
+未解决 thread 是需要阅读的默认状态，因此不逐条显示状态标记。已解决 thread 使用 `✓`，outdated 和原始位置使用小写文字作为次要标记。文本输出只保留位置、处理状态、作者和评论正文；thread ID、URL、association 与时间等完整元数据保留在 JSON 输出中。
 
 Thread 按以下顺序分组：
 
@@ -115,7 +110,7 @@ Thread 按以下顺序分组：
 即使没有 inline review thread，摘要也明确显示：
 
 ```text
-review threads: 0 total
+0 review threads
 ```
 
 这表示 review threads 已经被查询且结果为空，而不是未被查询。
