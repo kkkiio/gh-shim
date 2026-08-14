@@ -26,6 +26,15 @@ set -e
 
 json_home="${test_root}/json-home"
 mkdir -p "${json_home}"
+text_output="$(env HOME="${json_home}" XDG_DATA_HOME="${json_home}/data" \
+  PATH="${fake_bin}:/usr/bin:/bin" "${binary}" pr view 42 \
+  --repo acme/widgets --comments)"
+grep -Fq '2 review threads · 1 open · 1 resolved; 0 outdated' \
+  <<<"${text_output}"
+grep -Fq 'src/main.mbt:12' <<<"${text_output}"
+grep -Fq '  author replied' <<<"${text_output}"
+grep -Fq '✓ README.md · resolved by author' <<<"${text_output}"
+
 json_output="$(env HOME="${json_home}" XDG_DATA_HOME="${json_home}/data" \
   PATH="${fake_bin}:/usr/bin:/bin" "${binary}" pr view 42 \
   --repo acme/widgets --json comments)"

@@ -663,10 +663,10 @@ pub fn render_review_threads(
   }
   let resolved = threads.length() - unresolved
   let output = StringBuilder::new()
-  output.write_string("review threads: \{threads.length()} total")
+  output.write_string("\{threads.length()} review threads")
   if threads.length() > 0 {
     output.write_string(
-      ", \{unresolved} unresolved, \{resolved} resolved; \{outdated} outdated",
+      " · \{unresolved} open · \{resolved} resolved; \{outdated} outdated",
     )
   }
   output.write_string("\n")
@@ -680,30 +680,38 @@ pub fn render_review_threads(
   if threads.length() == 0 {
     return output.to_string()
   }
-  output.write_string("\nINLINE REVIEW THREADS\n")
+  output.write_string("\nReview threads\n")
   for thread in threads {
-    let state = if thread.isResolved { "RESOLVED" } else { "UNRESOLVED" }
-    let labels = if thread.isOutdated { state + ", OUTDATED" } else { state }
-    let location = if thread.subjectType == "FILE" {
-      thread.path
+    let (location, uses_original_location) = if thread.subjectType == "FILE" {
+      (thread.path, false)
     } else {
       match thread.line {
-        Some(line) => "\{thread.path}:\{line}"
+        Some(line) => ("\{thread.path}:\{line}", false)
         None =>
           match thread.originalLine {
-            Some(line) => "\{thread.path}:\{line} (original)"
-            None => thread.path
+            Some(line) => ("\{thread.path}:\{line}", true)
+            None => (thread.path, false)
           }
       }
     }
-    output.write_string("\n[\{labels}] \{location}\nthread: \{thread.id}\n")
-    match thread.resolvedBy {
-      Some(author) => output.write_string("resolved-by: \{author.login}\n")
-      None => ()
+    output.write_string("\n")
+    if thread.isResolved {
+      output.write_string("✓ ")
     }
-    if thread.comments.length() > 0 {
-      output.write_string("url: \{thread.comments[0].url}\n")
+    output.write_string(location)
+    if thread.isResolved {
+      match thread.resolvedBy {
+        Some(author) => output.write_string(" · resolved by \{author.login}")
+        None => output.write_string(" · resolved")
+      }
     }
+    if thread.isOutdated {
+      output.write_string(" · outdated")
+    }
+    if uses_original_location {
+      output.write_string(" · original")
+    }
+    output.write_string("\n")
     for index = 0; index < thread.comments.length(); index = index + 1 {
       let comment = thread.comments[index]
       let login = match comment.author {
@@ -711,15 +719,11 @@ pub fn render_review_threads(
         None => "ghost"
       }
       if index == 0 {
-        output.write_string(
-          "\n\{login} • \{comment.authorAssociation.to_lower()} • \{comment.createdAt}\n",
-        )
+        output.write_string("\n\{login}\n")
         output.write_string(comment.body)
         output.write_string("\n")
       } else {
-        output.write_string(
-          "\n  reply: \{login} • \{comment.authorAssociation.to_lower()} • \{comment.createdAt}\n",
-        )
+        output.write_string("\n  \{login} replied\n")
         for line in comment.body.split("\n") {
           output.write_string("  " + line.to_owned() + "\n")
         }
