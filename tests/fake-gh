@@ -20,8 +20,8 @@ fi
 if [[ "${1:-}" == "pr" && "${2:-}" == "view" ]]; then
   if [[ " $* " == *" --comments "* && " $* " != *" --json "* ]]; then
     printf 'author: reviewer\nassociation: member\n--\nConversation comment.\n'
-  elif [[ " $* " == *" comments"* ]]; then
-    printf '{"comments":[{"body":"Conversation comment."}],"url":"https://github.com/acme/widgets/pull/42"}\n'
+  elif [[ "$*" == *"comments"* ]]; then
+    printf '{"comments":[{"id":"conversation-1","author":{"login":"participant"},"body":"Conversation comment."}],"url":"https://github.com/acme/widgets/pull/42"}\n'
   else
     printf '{"url":"https://github.com/acme/widgets/pull/42"}\n'
   fi

@@ -37,11 +37,17 @@ Restart your terminal to activate the shim.
 gh pr view 42 --comments --repo owner/repository
 ```
 
-When a JSON query requests `comments`, a sibling `reviewThreads` field is added:
+JSON `comments` includes both conversation comments and inline review comments, so existing `jq` projections see all feedback without learning a new field:
 
 ```bash
 gh pr view 42 --repo owner/repository --json comments \
-  --jq '{comments: (.comments | length), reviewThreads: (.reviewThreads | length)}'
+  --jq '[.comments[] | {author: .author.login, body: .body}]'
+```
+
+Projected inline comments include a `reviewThread` object with their code location and resolved/outdated state. Request the top-level `reviewThreads` field explicitly when the complete nested thread and reply structure is needed:
+
+```bash
+gh pr view 42 --repo owner/repository --json comments,reviewThreads
 ```
 
 Enhanced JSON output supports both raw output and `--jq`, but not `--template`. To check the installation status:

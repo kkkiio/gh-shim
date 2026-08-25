@@ -38,9 +38,29 @@ grep -Fq '✓ README.md · resolved by author' <<<"${text_output}"
 json_output="$(env HOME="${json_home}" XDG_DATA_HOME="${json_home}/data" \
   PATH="${fake_bin}:/usr/bin:/bin" "${binary}" pr view 42 \
   --repo acme/widgets --json comments)"
-[[ "$(jq '.reviewThreads | length' <<<"${json_output}")" == "2" ]]
-[[ "$(jq '.["reviewThreads"][0].comments | length' <<<"${json_output}")" == "2" ]]
-[[ "$(jq '.comments | length' <<<"${json_output}")" == "1" ]]
+[[ "$(jq 'keys == ["comments"]' <<<"${json_output}")" == "true" ]]
+[[ "$(jq '.comments | length' <<<"${json_output}")" == "4" ]]
+[[ "$(jq '[.comments[] | select(.reviewThread)] | length' \
+  <<<"${json_output}")" == "3" ]]
+[[ "$(jq -r '.comments[] | select(.id == "comment-1") | .reviewThread.path' \
+  <<<"${json_output}")" == "src/main.mbt" ]]
+[[ "$(jq -r '.comments[] | select(.id == "comment-3") | .reviewThread.isResolved' \
+  <<<"${json_output}")" == "true" ]]
+
+projected_output="$(env HOME="${json_home}" XDG_DATA_HOME="${json_home}/data" \
+  PATH="${fake_bin}:/usr/bin:/bin" "${binary}" pr view 42 \
+  --repo acme/widgets --json reviews,comments \
+  --jq '{comments: [.comments[] | {author: .author.login, body: .body}]}')"
+[[ "$(jq '.comments | length' <<<"${projected_output}")" == "4" ]]
+[[ "$(jq -r '.comments[1].author' <<<"${projected_output}")" == "reviewer" ]]
+
+combined_output="$(env HOME="${json_home}" XDG_DATA_HOME="${json_home}/data" \
+  PATH="${fake_bin}:/usr/bin:/bin" "${binary}" pr view 42 \
+  --repo acme/widgets --json comments,reviewThreads)"
+[[ "$(jq 'keys == ["comments", "reviewThreads"]' \
+  <<<"${combined_output}")" == "true" ]]
+[[ "$(jq '.reviewThreads[0].comments | length' \
+  <<<"${combined_output}")" == "2" ]]
 
 jq_output="$(env HOME="${json_home}" XDG_DATA_HOME="${json_home}/data" \
   PATH="${fake_bin}:/usr/bin:/bin" "${binary}" pr view 42 \

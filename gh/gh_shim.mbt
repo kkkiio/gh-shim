@@ -834,7 +834,27 @@ async fn run_json_comments(
   if !requested_fields.contains("url") {
     native_object.remove("url")
   }
-  native_object["reviewThreads"] = @json.to_json(threads)
+  if requested_fields.contains("comments") {
+    guard native_object.get("comments") is Some(Array(comments)) else {
+      raise Failure::Failure("real gh returned no pull request comments")
+    }
+    for thread in threads {
+      guard @json.to_json(thread) is Object(review_thread) else {
+        raise Failure::Failure("failed to serialize a review thread")
+      }
+      review_thread.remove("comments")
+      for comment in thread.comments {
+        guard @json.to_json(comment) is Object(projected_comment) else {
+          raise Failure::Failure("failed to serialize a review comment")
+        }
+        projected_comment["reviewThread"] = Json::object(review_thread)
+        comments.push(Json::object(projected_comment))
+      }
+    }
+  }
+  if requested_fields.contains("reviewThreads") {
+    native_object["reviewThreads"] = @json.to_json(threads)
+  }
   let enhanced = Json::object(native_object).stringify()
   match jq_expression {
     None => @stdio.stdout.write(enhanced + "\n")
