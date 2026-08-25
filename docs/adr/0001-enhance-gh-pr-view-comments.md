@@ -2,6 +2,7 @@
 
 - 状态：已采纳
 - 日期：2026-08-12
+- 修订：2026-08-25
 
 ## 背景
 
@@ -117,42 +118,69 @@ Thread 按以下顺序分组：
 
 ### JSON 输出
 
-`comments` 与 `reviewThreads` 保持为两个独立字段：
+`comments` 是面向现有 GitHub CLI 调用的可发现性投影，`reviewThreads` 是保留完整语义的规范结构：
 
 ```text
 comments
-  = IssueComment[]
+  = (IssueComment | PullRequestReviewCommentProjection)[]
 
 reviewThreads
   = PullRequestReviewThread[]
       └─ comments: PullRequestReviewComment[]
 ```
 
-请求 `comments` 字段时，`gh-shim` 隐式补充同级的 `reviewThreads` 字段：
+请求 `comments` 字段时，`gh-shim` 保留 real gh 返回的 Conversation comments，并把每个 review thread 中的 inline comments 和回复追加到同一个数组。投影项复用评论的 `id`、`author`、`authorAssociation`、`body`、`createdAt`、`updatedAt` 和 `url` 等字段，并增加不含 comments 的 `reviewThread` 元数据：
+
+```json
+{
+  "comments": [
+    {
+      "id": "PRRC_kwDOTnSuG...",
+      "author": {
+        "login": "chatgpt-codex-connector"
+      },
+      "authorAssociation": "NONE",
+      "body": "Normalize the URL used for operation output...",
+      "diffHunk": "@@ -543,23 +559,50 @@ ...",
+      "createdAt": "2026-07-30T05:08:26Z",
+      "updatedAt": "2026-07-30T05:08:27Z",
+      "url": "https://github.com/...#discussion_r3680150505",
+      "reviewThread": {
+        "id": "PRRT_kwDOTnSuG...",
+        "path": "agconf.mbt",
+        "line": 571,
+        "originalLine": 571,
+        "startLine": 570,
+        "diffSide": "RIGHT",
+        "startDiffSide": "RIGHT",
+        "subjectType": "LINE",
+        "isResolved": false,
+        "isOutdated": false,
+        "resolvedBy": null
+      }
+    }
+  ]
+}
+```
+
+`reviewThread` 字段只存在于追加的 review comment 投影，因此调用方可以区分它与原生 `IssueComment`。完整的嵌套 comments 只保留在顶层 `reviewThreads` 字段中，避免在每个投影项内递归复制整个 thread。
+
+JSON 严格遵守请求的顶层字段。以下调用只返回增强后的 `comments`：
 
 ```bash
 gh pr view <pr> --json comments
 ```
 
-返回：
-
-```json
-{
-  "comments": [],
-  "reviewThreads": []
-}
-```
-
-同样地：
-
-```bash
-gh pr view <pr> --json reviews,comments
-```
-
-返回 `reviews`、`comments` 和 `reviewThreads`。调用方也可以显式请求：
+需要完整 thread 结构时必须显式请求：
 
 ```bash
 gh pr view <pr> --json reviewThreads
+```
+
+也可以同时请求两个投影：
+
+```bash
+gh pr view <pr> --json comments,reviewThreads
 ```
 
 不包含 `comments` 或 `reviewThreads` 的字段投影不受影响。例如：
@@ -163,11 +191,16 @@ gh pr view <pr> --json title,state
 
 仍然只返回 `title` 和 `state`。
 
-`--jq` 在增强后的 JSON 对象上执行，因此可以访问 `reviewThreads`。显式选择 `.comments` 仍然只得到 `IssueComment[]`；inline comments 不会伪装成普通 Conversation comments。
+`--jq` 在增强后的 JSON 对象上执行。Agent 常用的字段重建表达式无需知道 `reviewThreads`，仍能看到 inline feedback：
+
+```bash
+gh pr view <pr> --json reviews,comments \
+  --jq '{reviews: [.reviews[] | {author: .author.login, state, body}], comments: [.comments[] | {author: .author.login, body}]}'
+```
+
+该表达式会同时返回 Conversation comments 与 inline review comments。它主动舍弃了 `reviewThread` 元数据；需要位置、resolved/outdated 状态或回复关系的调用方应保留 `reviewThread`，或显式请求顶层 `reviewThreads`。
 
 Comment-aware projection 不接受 `--template`。完整兼容 GitHub CLI 的 Go Template 语法及扩展函数需要另一套运行时；提供语义不完整的模板子集会让已有命令产生不可预测的结果。检测到该组合时，在请求 PR 或 review thread 数据前以非零状态失败。未请求 `comments` 或 `reviewThreads` 的原生字段投影继续由 real gh 处理，因此其 `--template` 行为不变。
-
-请求 `comments` 时隐式增加字段是有意的兼容性取舍。严格字段投影的重要性低于 `gh-shim` 的核心承诺：请求 PR 评论时不能静默漏掉 review feedback。
 
 ### Review Thread 数据契约
 
@@ -218,12 +251,13 @@ Comment-aware projection 不接受 `--template`。完整兼容 GitHub CLI 的 Go
 - 未解决意见在摘要和排序中优先出现，不会被较长的 Conversation 淹没。
 - Thread 的位置、解决状态、过期状态和回复关系得到保留。
 - 空数组和零计数明确表示已经查询，调用方可以区分“没有”与“遗漏”。
-- JSON 仍然保留 GitHub 原有对象类型，调用方不需要从混合数组中猜测评论类别。
+- Agent 对 `comments[].author` 和 `comments[].body` 的常见投影会直接看到 inline feedback。
+- JSON 只输出明确请求的顶层字段，不再隐式增加 `reviewThreads`。
 
 负面影响：
 
 - `--comments` 文本输出不再与原生 `gh` 完全相同。
-- 请求 JSON `comments` 会得到一个未显式列出的同级字段，严格字段投影有所放宽。
+- JSON `comments` 成为带 `reviewThread` 判别字段的混合数组，不再严格等同于 real gh 的 `IssueComment[]`。
 - Comment-aware JSON projection 不能使用 `--template`。
 - 获取全部 review threads 会增加网络请求、延迟和分页成本。
 - GitHub API 权限、限流或暂时故障可能使原本能够部分成功的调用显式失败。
@@ -236,9 +270,9 @@ Comment-aware projection 不接受 `--template`。完整兼容 GitHub CLI 的 Go
 
 拒绝。真实 Agent 不会主动请求一个它不知道存在的字段，仍会依据 `--comments` 或 `--json comments,reviews` 的不完整结果作出错误判断。
 
-### 将所有评论合并为扁平数组
+### 只用扁平评论数组表示 review feedback
 
-拒绝。`IssueComment` 和 `PullRequestReviewComment` 的语义不同；扁平化还会丢失 thread 的 resolved、outdated、位置和回复关系。
+拒绝作为唯一结构。`IssueComment` 和 `PullRequestReviewComment` 的语义不同，单纯扁平化会丢失 thread 的 resolved、outdated、位置和回复关系。当前决策只把扁平评论作为兼容现有 Agent 查询的额外投影，并通过 `reviewThread` 元数据与顶层 `reviewThreads` 保留完整语义。
 
 ### 只显示 unresolved threads
 
