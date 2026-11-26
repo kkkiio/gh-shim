@@ -15,30 +15,34 @@ pub fn render_review_threads(Array[ReviewThread], native_output? : String) -> St
 
 pub fn rewrite_pr_view_arguments(Array[String], Array[String]) -> Array[String]
 
-pub async fn run(Array[String], executable? : String) -> Int
+pub async fn run(Array[String], executable? : String) -> Int32
 
 // Errors
 
 // Types and methods
+#derive(Eq, @debug.Debug, @json.FromJson, @json.ToJson)
 pub(all) struct Author {
   login : String
-} derive(Eq, ToJson, @debug.Debug, @json.FromJson)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) enum InvocationMode {
   Passthrough
   TextComments
   JsonComments(Array[String])
   Init
   Doctor
-} derive(Eq, @debug.Debug)
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct PullRequestRef {
   hostname : String
   owner : String
   name : String
-  number : Int
-} derive(Eq, @debug.Debug)
+  number : Int32
+}
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ReviewComment {
   id : String
   author : Author?
@@ -48,16 +52,17 @@ pub(all) struct ReviewComment {
   createdAt : String
   updatedAt : String
   url : String
-} derive(Eq, @debug.Debug)
-pub impl ToJson for ReviewComment
+}
 pub impl @json.FromJson for ReviewComment
+pub impl @json.ToJson for ReviewComment
 
+#derive(Eq, @debug.Debug)
 pub(all) struct ReviewThread {
   id : String
   path : String
-  line : Int?
-  originalLine : Int?
-  startLine : Int?
+  line : Int32?
+  originalLine : Int32?
+  startLine : Int32?
   diffSide : String?
   startDiffSide : String?
   subjectType : String
@@ -65,9 +70,9 @@ pub(all) struct ReviewThread {
   isOutdated : Bool
   resolvedBy : Author?
   comments : Array[ReviewComment]
-} derive(Eq, @debug.Debug)
-pub impl ToJson for ReviewThread
+}
 pub impl @json.FromJson for ReviewThread
+pub impl @json.ToJson for ReviewThread
 
 // Type aliases
 

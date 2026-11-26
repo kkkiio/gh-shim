@@ -1,26 +1,30 @@
 ///|
+#derive(Eq, Debug)
 pub(all) enum InvocationMode {
   Passthrough
   TextComments
   JsonComments(Array[String])
   Init
   Doctor
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct PullRequestRef {
   hostname : String
   owner : String
   name : String
-  number : Int
-} derive(Eq, Debug)
+  number : Int32
+}
 
 ///|
+#derive(Eq, Debug, ToJson, @json.FromJson)
 pub(all) struct Author {
   login : String
-} derive(Eq, Debug, ToJson, @json.FromJson)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ReviewComment {
   id : String
   author : Author?
@@ -30,15 +34,16 @@ pub(all) struct ReviewComment {
   createdAt : String
   updatedAt : String
   url : String
-} derive(Eq, Debug)
+}
 
 ///|
+#derive(Eq, Debug)
 pub(all) struct ReviewThread {
   id : String
   path : String
-  line : Int?
-  originalLine : Int?
-  startLine : Int?
+  line : Int32?
+  originalLine : Int32?
+  startLine : Int32?
   diffSide : String?
   startDiffSide : String?
   subjectType : String
@@ -46,7 +51,7 @@ pub(all) struct ReviewThread {
   isOutdated : Bool
   resolvedBy : Author?
   comments : Array[ReviewComment]
-} derive(Eq, Debug)
+}
 
 ///|
 pub impl ToJson for ReviewComment with fn to_json(self) {
@@ -158,16 +163,16 @@ pub impl @json.FromJson for ReviewThread with fn from_json(
       raise @json.JsonDecodeError((path.add_key(key), "missing required field"))
     }
   }
-  let line : Int? = match fields.get("line") {
+  let line : Int32? = match fields.get("line") {
     None | Some(Null) => None
     Some(value) => Some(@json.from_json(value, path=path.add_key("line")))
   }
-  let original_line : Int? = match fields.get("originalLine") {
+  let original_line : Int32? = match fields.get("originalLine") {
     None | Some(Null) => None
     Some(value) =>
       Some(@json.from_json(value, path=path.add_key("originalLine")))
   }
-  let start_line : Int? = match fields.get("startLine") {
+  let start_line : Int32? = match fields.get("startLine") {
     None | Some(Null) => None
     Some(value) => Some(@json.from_json(value, path=path.add_key("startLine")))
   }
@@ -210,24 +215,27 @@ pub impl @json.FromJson for ReviewThread with fn from_json(
 }
 
 ///|
+#derive(@json.FromJson)
 priv struct PageInfo {
   hasNextPage : Bool
   endCursor : String?
-} derive(@json.FromJson)
+}
 
 ///|
+#derive(@json.FromJson)
 priv struct ReviewCommentConnection {
   nodes : Array[ReviewComment]
   pageInfo : PageInfo
-} derive(@json.FromJson)
+}
 
 ///|
+#derive(@json.FromJson)
 priv struct ReviewThreadNode {
   id : String
   path : String
-  line : Int?
-  originalLine : Int?
-  startLine : Int?
+  line : Int32?
+  originalLine : Int32?
+  startLine : Int32?
   diffSide : String?
   startDiffSide : String?
   subjectType : String
@@ -235,48 +243,56 @@ priv struct ReviewThreadNode {
   isOutdated : Bool
   resolvedBy : Author?
   comments : ReviewCommentConnection
-} derive(@json.FromJson)
+}
 
 ///|
+#derive(@json.FromJson)
 priv struct ReviewThreadConnection {
   nodes : Array[ReviewThreadNode]
   pageInfo : PageInfo
-} derive(@json.FromJson)
+}
 
 ///|
+#derive(@json.FromJson)
 priv struct PullRequestNode {
   reviewThreads : ReviewThreadConnection
-} derive(@json.FromJson)
+}
 
 ///|
+#derive(@json.FromJson)
 priv struct RepositoryNode {
   pullRequest : PullRequestNode?
-} derive(@json.FromJson)
+}
 
 ///|
+#derive(@json.FromJson)
 priv struct ReviewThreadsData {
   repository : RepositoryNode?
-} derive(@json.FromJson)
+}
 
 ///|
+#derive(@json.FromJson)
 priv struct ReviewThreadsResponse {
   data : ReviewThreadsData?
-} derive(@json.FromJson)
+}
 
 ///|
+#derive(@json.FromJson)
 priv struct CommentPageNode {
   comments : ReviewCommentConnection
-} derive(@json.FromJson)
+}
 
 ///|
+#derive(@json.FromJson)
 priv struct CommentPageData {
   node : CommentPageNode?
-} derive(@json.FromJson)
+}
 
 ///|
+#derive(@json.FromJson)
 priv struct CommentPageResponse {
   data : CommentPageData?
-} derive(@json.FromJson)
+}
 
 ///|
 pub fn invocation_mode(arguments : Array[String]) -> InvocationMode {
@@ -374,7 +390,7 @@ pub fn parse_pull_request_url(url : String) -> PullRequestRef raise {
   if number <= 0 {
     raise Failure::Failure("unexpected pull request URL: \{url}")
   }
-  { hostname: pieces[2], owner: pieces[3], name: pieces[4], number }
+  { hostname: pieces[2], owner: pieces[3], name: pieces[4], number, }
 }
 
 ///|
@@ -613,7 +629,7 @@ async fn fetch_review_threads(
 ///|
 pub fn render_review_threads(
   input : Array[ReviewThread],
-  native_output? : String = "",
+  native_output~ : String = "",
 ) -> String {
   let threads = input.copy()
   threads.sort_by((left, right) => {
@@ -662,7 +678,7 @@ pub fn render_review_threads(
     }
   }
   let resolved = threads.length() - unresolved
-  let output = StringBuilder::new()
+  let output = StringBuilder::StringBuilder()
   output.write_string("\{threads.length()} review threads")
   if threads.length() > 0 {
     output.write_string(
@@ -738,7 +754,7 @@ async fn run_text_comments(
   real_gh : String,
   clean_path : String,
   arguments : Array[String],
-) -> Int {
+) -> Int32 {
   let metadata_arguments = rewrite_pr_view_arguments(arguments, ["url"])
   let (metadata_status, metadata_stdout, metadata_stderr) = @process.collect_output(
     real_gh,
@@ -779,7 +795,7 @@ async fn run_json_comments(
   clean_path : String,
   arguments : Array[String],
   requested_fields : Array[String],
-) -> Int {
+) -> Int32 {
   let mut jq_expression : String? = None
   let mut template : String? = None
   let mut index = 0
@@ -866,7 +882,7 @@ async fn run_json_comments(
 }
 
 ///|
-async fn run_init(arguments : Array[String], executable : String) -> Int {
+async fn run_init(arguments : Array[String], executable : String) -> Int32 {
   let shim = shim_directory()
   if !@fs.exists(shim) {
     @fs.mkdir(shim, recursive=true)
@@ -1016,7 +1032,7 @@ async fn run_init(arguments : Array[String], executable : String) -> Int {
 }
 
 ///|
-async fn run_doctor(real_gh : String, clean_path : String) -> Int {
+async fn run_doctor(real_gh : String, clean_path : String) -> Int32 {
   let shim = shim_directory() catch { error => "unavailable: \{error}" }
   let path = @env.get_env_var("PATH").unwrap_or("")
   let entries = path.split(":").map(entry => entry.to_owned()).collect()
@@ -1042,8 +1058,8 @@ async fn run_doctor(real_gh : String, clean_path : String) -> Int {
 ///|
 pub async fn run(
   arguments : Array[String],
-  executable? : String = "gh-shim",
-) -> Int {
+  executable~ : String = "gh-shim",
+) -> Int32 {
   let invoked_as_gh = @env.get_env_var("GH_SHIM_INVOKED_AS_GH") == Some("1")
   let mode = if invoked_as_gh {
     match invocation_mode(arguments) {
