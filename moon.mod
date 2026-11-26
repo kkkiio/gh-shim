@@ -15,6 +15,6 @@ description = "A transparent, agent-friendly enhancement layer for GitHub CLI"
 keywords = [ "github", "cli", "review", "shim" ]
 
 import {
-  "moonbitlang/async@0.20.2",
-  "moonbitlang/x@0.4.48",
+  "moonbitlang/async@0.22.10",
+  "moonbitlang/x@0.5.9",
 }

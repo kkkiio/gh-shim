@@ -14,16 +14,16 @@ async fn main {
     }
     let code = @lib.run(forwarded, executable~)
     if code != 0 {
-      @sys.exit(code)
+      @env.exit(code)
     }
   } catch {
     Failure::Failure(message) => {
       @stdio.stderr.write("gh-shim: " + message + "\n")
-      @sys.exit(1)
+      @env.exit(1)
     }
     error => {
       @stdio.stderr.write("gh-shim: \{error}\n")
-      @sys.exit(1)
+      @env.exit(1)
     }
   }
 }

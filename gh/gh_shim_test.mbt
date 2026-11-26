@@ -49,7 +49,7 @@ test "renders native comments before grouped review thread snapshots" (
 ) {
   let root : @gh_shim.ReviewComment = {
     id: "PRRC_root",
-    author: Some({ login: "reviewer" }),
+    author: Some({ login: "reviewer", }),
     authorAssociation: "MEMBER",
     body: "Please fix this.",
     diffHunk: "@@ -1 +1 @@",
@@ -59,7 +59,7 @@ test "renders native comments before grouped review thread snapshots" (
   }
   let reply : @gh_shim.ReviewComment = {
     id: "PRRC_reply",
-    author: Some({ login: "author" }),
+    author: Some({ login: "author", }),
     authorAssociation: "OWNER",
     body: "Fixed now.\nAdded a regression test.",
     diffHunk: "@@ -1 +1 @@",
@@ -79,7 +79,7 @@ test "renders native comments before grouped review thread snapshots" (
       subjectType: "LINE",
       isResolved: true,
       isOutdated: true,
-      resolvedBy: Some({ login: "author" }),
+      resolvedBy: Some({ login: "author", }),
       comments: [root],
     },
     {
